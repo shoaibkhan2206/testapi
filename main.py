@@ -215,10 +215,13 @@ async def internal_error_handler(request, exc):
         content={"status": "error", "message": "Internal server error", "detail": "An unexpected error occurred"}
     )
 
-
 # ------------------------ Run API ------------------------ #
 if __name__ == "__main__":
     import uvicorn
+    import os
+
+    port = int(os.environ.get("PORT", 8000))  # Render gives a dynamic port
     print("Starting Job Search & Recommendation API...")
-    print("API Docs: http://localhost:8000/docs")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    print(f"API Docs: http://localhost:{port}/docs")
+
+    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
