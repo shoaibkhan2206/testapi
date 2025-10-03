@@ -76,7 +76,6 @@ def build_serpapi_url(query: str, location: str = DEFAULT_LOCATION, api_key: str
 def fetch_serpapi_data(url: str) -> Dict[str, Any]:
     """Fetch job data from SerpAPI URL."""
     try:
-        print(f"Fetching data from SerpAPI: {url}")
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         
@@ -84,9 +83,6 @@ def fetch_serpapi_data(url: str) -> Dict[str, Any]:
         
         if data.get('search_metadata', {}).get('status') != 'Success':
             raise Exception(f"SerpAPI request failed: {data.get('search_metadata', {}).get('status', 'Unknown error')}")
-        
-        jobs_count = len(data.get('jobs_results', []))
-        print(f"Successfully fetched {jobs_count} job listings from SerpAPI")
         
         return data
         
@@ -153,15 +149,18 @@ def transform_job_to_internship(job_data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def generate_jobs(title: str, skills: List[str], degree: Optional[str] = None, location: str = "India"):
+def fetch_jobs(title: str, skills: List[str], degree: Optional[str] = None, location: str = "India") -> List[Dict[str, Any]]:
     """
-    Generate job listings based on search criteria and save to output.json.
+    Fetch job listings based on search criteria and return as a list of job dictionaries.
     
     Args:
         title: Job title to search for
         skills: List of skills to include in search
         degree: Optional degree to include in search
         location: Location to search in
+        
+    Returns:
+        List of job dictionaries
     """
     try:
         # Build search queries for multiple searches
@@ -181,34 +180,25 @@ def generate_jobs(title: str, skills: List[str], degree: Optional[str] = None, l
         main_query = f"{title} internship in {location}"
         search_queries.append(("Main query", main_query))
         
-        print(f"🚀 Running {len(search_queries)} different searches...")
-        
         all_internships = []
         
         # Run each search
         for search_name, search_query in search_queries:
             try:
-                print(f"⏳ {search_name}: {search_query}")
                 serpapi_url = build_serpapi_url(search_query, location=location, num=20)
                 data = fetch_serpapi_data(serpapi_url)
                 
                 jobs = data.get('jobs_results', [])
                 if jobs:
-                    print(f"✅ Found {len(jobs)} jobs from {search_name}")
-                    
                     # Transform jobs to internship format
                     for job in jobs:
                         try:
                             internship = transform_job_to_internship(job)
                             all_internships.append(internship)
                         except Exception as e:
-                            print(f"Error processing job: {e}")
                             continue
-                else:
-                    print(f"⚠️ No results from {search_name}")
                     
             except Exception as e:
-                print(f"❌ {search_name} failed: {e}")
                 continue
         
         # Remove duplicates
@@ -224,7 +214,24 @@ def generate_jobs(title: str, skills: List[str], degree: Optional[str] = None, l
                 seen_signatures.add(signature)
                 unique_internships.append(internship)
         
-        print(f"✅ Total unique internships: {len(unique_internships)} (removed {len(all_internships) - len(unique_internships)} duplicates)")
+        return unique_internships
+        
+    except Exception as e:
+        raise
+
+
+def generate_jobs(title: str, skills: List[str], degree: Optional[str] = None, location: str = "India"):
+    """
+    Generate job listings based on search criteria and save to output.json.
+    
+    Args:
+        title: Job title to search for
+        skills: List of skills to include in search
+        degree: Optional degree to include in search
+        location: Location to search in
+    """
+    try:
+        unique_internships = fetch_jobs(title, skills, degree, location)
         
         # Create output structure
         output_data = {
@@ -244,11 +251,9 @@ def generate_jobs(title: str, skills: List[str], degree: Optional[str] = None, l
         with open('output.json', 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
         
-        print(f"💾 Results saved to output.json")
         return output_data
         
     except Exception as e:
-        print(f"❌ Error generating jobs: {e}")
         raise
 
 

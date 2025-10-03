@@ -10,6 +10,30 @@ import argparse
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+from job_search import fetch_jobs
+
+
+def fetch_and_recommend_jobs(title: str, skills: List[str], degree: Optional[str] = None, location: str = "India", user_skills: Optional[List[str]] = None, top_k: int = 20, model_name: str = 'all-MiniLM-L6-v2') -> pd.DataFrame:
+    """
+    Fetch job listings and generate recommendations in one step.
+    
+    Args:
+        title: Job title to search for
+        skills: List of skills to include in search
+        degree: Optional degree to include in search
+        location: Location to search in
+        user_skills: User's skills for recommendation matching
+        top_k: Number of top recommendations to return
+        model_name: Sentence transformer model name
+        
+    Returns:
+        pandas DataFrame of ranked recommendations
+    """
+    # Fetch jobs directly using the new function
+    internships = fetch_jobs(title, skills, degree, location)
+    
+    # Generate recommendations from the fetched jobs
+    return generate_recommendations(internships, user_skills, top_k, model_name)
 
 
 def generate_recommendations(internships: List[Dict], user_skills: Optional[List[str]] = None, top_k: int = 20, model_name: str = 'all-MiniLM-L6-v2') -> pd.DataFrame:
